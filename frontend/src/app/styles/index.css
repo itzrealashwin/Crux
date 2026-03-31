@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- Light Mode (Clean White) --- */
+    --background: 0 0% 100%;          /* #ffffff */
+    --foreground: 240 10% 3.9%;       /* #09090b (Softer Black) */
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    /* Primary: Deep Black for buttons/brand */
+    --primary: 240 5.9% 10%;          /* #18181b */
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary: Light gray for muted actions */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    /* Muted: Subtle gray for borders/dividers */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    /* Accent: Used for hover states */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+
+    --radius: 0.5rem; /* Standard rounded corners (Change to 0rem for sharp) */
+  }
+
+  .dark {
+    /* --- Dark Mode (Premium Zinc) --- */
+    --background: 240 10% 3.9%;       /* #09090b (Not pure black) */
+    --foreground: 0 0% 98%;           /* #fafafa */
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary: White for buttons in dark mode */
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+
+    /* Secondary: Dark gray */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted: Deep gray */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    /* Accent: Hover states in dark mode */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  /* CRITICAL FIX: 
+     Force the body to inherit the semantic colors. 
+     This ensures text changes automatically when the theme switches.
+  */
+  body {
+    @apply bg-background text-foreground;
+  }
+}
