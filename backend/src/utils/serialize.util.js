@@ -30,9 +30,7 @@ export const stripInternalFields = (value) => {
       key === "_id" ||
       key === "id" ||
       key === "_v" ||
-      key === "__v" ||
-      key === "createdAt" ||
-      key === "updatedAt"
+      key === "__v"
     ) {
       continue;
     }

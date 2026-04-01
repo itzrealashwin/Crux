@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, useOutlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -43,7 +43,6 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const { setTheme, theme } = useTheme();
-
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);

@@ -10,7 +10,7 @@ export const useNotifications = () => {
   });
 };
 
-export const useNotificationByCode = (notificationCode) => {
+export const useNotificationByCode = (BenotificationCode) => {
   return useQuery({
     queryKey: ["notifications", notificationCode],
     queryFn: () => notificationService.getNotificationByCode(notificationCode),

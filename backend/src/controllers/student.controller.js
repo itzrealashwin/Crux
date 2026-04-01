@@ -30,6 +30,7 @@ export const createProfile = async (req, res, next) => {
 
 export const getMyProfile = async (req, res, next) => {
   try {
+    
     const profile = await studentService.getMyProfile(req.user._id);
     sendSuccess(res, sanitizeForResponse(profile), "Profile fetched");
   } catch (error) {

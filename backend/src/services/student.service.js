@@ -1,5 +1,6 @@
 import StudentProfile from "../models/studentProfile.model.js";
 import Skill from "../models/skills.model.js";
+import mongoose from "mongoose";
 
 // Reusable pipeline stages for skill lookup
 const SKILL_LOOKUP = [
@@ -48,11 +49,13 @@ class StudentService {
 
   async getMyProfile(userId) {
     const result = await StudentProfile.aggregate([
-      { $match: { userId } },
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
       ...ACCOUNT_LOOKUP,
       ...SKILL_LOOKUP,
     ]);
 
+    console.log(result);
+    
     if (!result.length) throw { statusCode: 404, message: "Profile not found" };
     return result[0];
   }

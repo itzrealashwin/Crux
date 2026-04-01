@@ -20,16 +20,17 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
 
   // --- Fetch Data ---
-  const { profile: studentData, isLoading: isLoadingProfile } = useStudentProfile();
+  const { profile: studentDataResponse, isLoading: isLoadingProfile } = useStudentProfile();
+  const studentData = studentDataResponse?.data || studentDataResponse;
   const { data: applicationsResponse, isLoading: isLoadingApps } = useMyApplications();
   const { data: jobsResponse, isLoading: isLoadingJobs } = useAllJobs({ limit: 5 }); // Fetch recent jobs
   const { data: notificationsResponse, isLoading: isLoadingNotifs } = useNotifications();
 
   // --- Process Data Safely ---
-  const { stats, recentApps, jobs, notifications } = useMemo(() => {
+  const { stats, recentApps, jobs, notifications, upcomingDeadlines } = useMemo(() => {
     // Standardize arrays
     const apps = Array.isArray(applicationsResponse) ? applicationsResponse : applicationsResponse?.data || [];
-    const jobsList = Array.isArray(jobsResponse) ? jobsResponse : jobsResponse?.data || [];
+    const jobsList = Array.isArray(jobsResponse?.data?.jobs) ? jobsResponse.data.jobs : (Array.isArray(jobsResponse?.jobs) ? jobsResponse.jobs : []);
     const notifsList = Array.isArray(notificationsResponse) ? notificationsResponse : notificationsResponse?.data || [];
 
     // Calculate Application Stats
@@ -39,7 +40,7 @@ const StudentDashboard = () => {
 
     // Get Company names for shortlisted subtitle
     const shortlistedCompanies = shortlistedApps
-      .map(app => app.jobDetails?.company?.name || "Company")
+      .map(app => app.jobId?.company?.name || "Company")
       .slice(0, 2)
       .join(" · ");
 
@@ -55,6 +56,22 @@ const StudentDashboard = () => {
       recentApps: [...apps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 4),
       jobs: jobsList.slice(0, 3),
       notifications: notifsList.slice(0, 4),
+      upcomingDeadlines: jobsList.map(job => {
+        let upcoming = { date: job.deadline, name: "Application close", isDriveTimeline: false };
+        if (job.driveTimeline && job.driveTimeline.length > 0) {
+          const nextStage = job.driveTimeline.find(s => !s.isDone && new Date(s.date) > new Date());
+          if (nextStage) upcoming = { date: nextStage.date, name: nextStage.label || nextStage.key, isDriveTimeline: true };
+        }
+        return {
+          id: job._id || job.jobCode,
+          jobCode: job.jobCode,
+          companyName: job.company?.name || "Company",
+          title: job.title,
+          ...upcoming
+        };
+      }).filter(job => job.date && new Date(job.date) >= new Date(new Date().setHours(0,0,0,0)))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 3)
     };
   }, [applicationsResponse, jobsResponse, notificationsResponse]);
 
@@ -66,6 +83,41 @@ const StudentDashboard = () => {
       </div>
     );
   }
+
+  const getEligibilityStatus = (job) => {
+    if (!studentData) return { status: "Not eligible", variant: "destructive" };
+    
+    const criteria = job.eligibility || {};
+    
+    // Hard blocks
+    const deptEligible = !criteria.allowedDepartments?.length || criteria.allowedDepartments.includes(studentData.department);
+    const cgpaEligible = !criteria.minCgpa || (studentData.cgpa >= criteria.minCgpa);
+    const backlogEligible = criteria.maxBacklogs === undefined || (studentData.backlogs <= criteria.maxBacklogs);
+
+    if (!deptEligible || !cgpaEligible || !backlogEligible) {
+      return { status: "Not eligible", variant: "destructive" };
+    }
+
+    // Soft blocks (Skills)
+    const jobSkills = job.skillsRequired || [];
+    const studentSkills = studentData.skills || [];
+    // Assuming skills are objects with name property, if they are populated, or strings if not.
+    // Let's assume strings for this comparison based on previous codes, but we should be careful.
+    const studentSkillNames = studentSkills.map(s => typeof s === 'string' ? s : s.name);
+    const missingSkills = jobSkills.filter(skill => !studentSkillNames.includes(skill));
+
+    if (missingSkills.length > 0) {
+      return { status: "Skills gap", variant: "secondary" };
+    }
+
+    return { status: "Eligible", variant: "default" };
+  };
+
+  const getEligibilityBadgeStyle = (status) => {
+    if (status === "Not eligible") return "bg-red-500/10 text-red-500 hover:bg-red-500/20";
+    if (status === "Skills gap") return "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20";
+    return "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20";
+  };
 
   const profileCompleteness = studentData?.profileCompleteness || 68; // Fallback to 68% like the image
 
@@ -172,17 +224,17 @@ const StudentDashboard = () => {
             {recentApps.length > 0 ? (
               <div className="space-y-4">
                 {recentApps.map((app) => (
-                  <div key={app._id} className="flex items-center justify-between group">
+                  <div key={app.appId || app._id} className="flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded bg-muted/50 flex items-center justify-center border border-border text-xs font-bold text-muted-foreground">
-                        {app.jobDetails?.company?.name?.substring(0, 3).toUpperCase() || "C"}
+                        {app.jobId?.company?.name?.substring(0, 3).toUpperCase() || "C"}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                          {app.jobDetails?.title || "Role"}
+                          {app.jobId?.title || "Role"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {app.jobDetails?.company?.name || "Company"} · Applied {formatDate(app.createdAt)}
+                          {app.jobId?.company?.name || "Company"} · Applied {formatDate(app.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -245,7 +297,7 @@ const StudentDashboard = () => {
       {/* NEW JOBS MATCHING YOUR PROFILE */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-base font-semibold">New jobs matching your profile</CardTitle>
+          <CardTitle className="text-base font-semibold">New Jobs</CardTitle>
           <Button variant="link" className="text-xs font-medium text-primary p-0 h-auto" onClick={() => navigate("/student/jobs")}>
             View all {stats.newJobs} <ArrowRight className="w-3 h-3 ml-1" />
           </Button>
@@ -266,12 +318,17 @@ const StudentDashboard = () => {
                 <div className="flex items-end justify-between mt-auto">
                   <div>
                     <p className="text-lg font-bold text-foreground">{job.packageLPA} LPA</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Deadline: {formatDate(job.applicationDeadline)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Deadline: {formatDate(job.deadline)}</p>
                   </div>
-                  {/* Mock Eligibility based on arbitrary math for demo, replace with actual logic */}
-                  <Badge className={`rounded-full px-3 py-0.5 text-[10px] ${job.packageLPA > 6 ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20" : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"}`} variant="outline">
-                     {job.packageLPA > 6 ? "Skills gap" : "Eligible"}
-                  </Badge>
+                  {/* Real Eligibility logic */}
+                  {(() => {
+                    const eligibility = getEligibilityStatus(job);
+                    return (
+                      <Badge className={`rounded-full px-3 py-0.5 text-[10px] ${getEligibilityBadgeStyle(eligibility.status)}`} variant="outline">
+                        {eligibility.status}
+                      </Badge>
+                    );
+                  })()}
                 </div>
               </div>
             )) : (
@@ -287,37 +344,28 @@ const StudentDashboard = () => {
           <CardTitle className="text-base font-semibold">Upcoming deadlines</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Example static mock mapping based on image - replace with actual timeline filtering if you have it in jobsResponse */}
           <div className="space-y-0 divide-y divide-border">
-            <div className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Capgemini</p>
-                <p className="text-xs text-muted-foreground">Analyst — Technology · Application close</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-red-500">Today · 11:59 PM</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Infosys</p>
-                <p className="text-xs text-muted-foreground">Systems Engineer · Aptitude test</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-amber-500">18 Mar · 10:00 AM</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Accenture</p>
-                <p className="text-xs text-muted-foreground">Associate SWE · Application close</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground">22 Mar 2026</p>
-              </div>
-            </div>
+            {upcomingDeadlines && upcomingDeadlines.length > 0 ? upcomingDeadlines.map((item) => {
+              const diffDays = Math.ceil((new Date(item.date) - new Date()) / (1000 * 60 * 60 * 24));
+              const dateText = diffDays === 0 ? `Today · ${new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 
+                               diffDays === 1 ? 'Tomorrow' : 
+                               formatDate(item.date);
+              const colorClass = diffDays === 0 ? "text-red-500" : diffDays <= 3 ? "text-amber-500" : "text-muted-foreground";
+              
+              return (
+                <div key={item.id} className="flex items-center justify-between py-4 group cursor-pointer" onClick={() => navigate(`/student/jobs/${item.jobCode}`)}>
+                  <div>
+                    <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.companyName}</p>
+                    <p className="text-xs text-muted-foreground">{item.title} · {item.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-medium ${colorClass}`}>{dateText}</p>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="text-center py-6 text-sm text-muted-foreground">No upcoming deadlines found.</div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate, useOutlet } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -46,6 +46,7 @@ export default function StudentLayout() {
   const { user, logout } = useAuth();
   const { profile: studentProfileData } = useStudentProfile();
   const { setTheme, theme } = useTheme(); // <--- Use Theme Hook
+const element = useOutlet(); // <--- Add this here
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -297,20 +298,20 @@ export default function StudentLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="w-full max-w-[1600px] mx-auto"
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
-        </main>
+       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+  <AnimatePresence mode="wait" initial={false}>
+    <motion.div
+      key={location.pathname}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeInOut" }}
+      className="w-full max-w-[1600px] mx-auto"
+    >
+      {element}
+    </motion.div>
+  </AnimatePresence>
+</main>
       </div>
     </div>
   );
