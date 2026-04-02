@@ -1,10 +1,18 @@
-import mongoose from 'mongoose';
 import User from '../models/users.model.js';
 import Job from '../models/jobs.model.js';
 import Application from '../models/applications.model.js';
+import StudentProfile from '../models/studentProfile.model.js';
 
 const JOB_STATUS = { OPEN: 'OPEN' };
-const APP_STATUS = { SELECTED: 'SELECTED', HIRED: 'HIRED' };
+const APP_STATUS = {
+  APPLIED: 'APPLIED',
+  SHORTLISTED: 'SHORTLISTED',
+  INTERVIEW: 'INTERVIEW',
+  SELECTED: 'SELECTED',
+  HIRED: 'HIRED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'WITHDRAWN'
+};
 const ROLES = { STUDENT: 'STUDENT' };
 
 class AdminAnalyticsService {
@@ -227,7 +235,224 @@ class AdminAnalyticsService {
   }
 
   // ----------------------------------------------------------------
-  // SECTION 4: Utilities
+  // SECTION 4: New Dashboard Analytics Endpoints
+  // ----------------------------------------------------------------
+
+  async getDepartmentPlacementRates() {
+    const [departmentTotals, departmentPlaced] = await Promise.all([
+      StudentProfile.aggregate([
+        { $match: { department: { $exists: true, $ne: '' } } },
+        { $group: { _id: '$department', totalStudents: { $sum: 1 } } },
+        { $project: { _id: 0, department: '$_id', totalStudents: 1 } }
+      ]),
+      Application.aggregate([
+        { $match: { status: { $in: [APP_STATUS.SELECTED, APP_STATUS.HIRED] } } },
+        { $sort: { updatedAt: -1 } },
+        {
+          $group: {
+            _id: '$studentId',
+            department: { $first: '$eligibilitySnapshot.department' }
+          }
+        },
+        { $match: { department: { $exists: true, $ne: '' } } },
+        { $group: { _id: '$department', placedStudents: { $sum: 1 } } },
+        { $project: { _id: 0, department: '$_id', placedStudents: 1 } }
+      ])
+    ]);
+
+    const totalsByDepartment = new Map(
+      departmentTotals.map((item) => [item.department, item.totalStudents])
+    );
+    const placedByDepartment = new Map(
+      departmentPlaced.map((item) => [item.department, item.placedStudents])
+    );
+
+    const departments = new Set([
+      ...totalsByDepartment.keys(),
+      ...placedByDepartment.keys()
+    ]);
+
+    const data = Array.from(departments)
+      .map((department) => {
+        const totalStudents = totalsByDepartment.get(department) || 0;
+        const placedStudents = placedByDepartment.get(department) || 0;
+        const rate = totalStudents === 0 ? 0 : Number(((placedStudents / totalStudents) * 100).toFixed(1));
+
+        return {
+          department,
+          totalStudents,
+          placedStudents,
+          placementRate: rate
+        };
+      })
+      .sort((a, b) => a.department.localeCompare(b.department));
+
+    return {
+      departments: data,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async getApplicationStageCounts() {
+    const statuses = [
+      APP_STATUS.APPLIED,
+      APP_STATUS.SHORTLISTED,
+      APP_STATUS.INTERVIEW,
+      APP_STATUS.SELECTED,
+      APP_STATUS.HIRED,
+      APP_STATUS.REJECTED,
+      APP_STATUS.WITHDRAWN
+    ];
+
+    const grouped = await Application.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    const statusBreakdown = statuses.reduce((acc, status) => {
+      acc[status] = 0;
+      return acc;
+    }, {});
+
+    grouped.forEach((item) => {
+      if (statusBreakdown[item._id] !== undefined) {
+        statusBreakdown[item._id] = item.count;
+      }
+    });
+
+    return {
+      interviewCount: statusBreakdown[APP_STATUS.INTERVIEW],
+      statusBreakdown,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async getProfileAndVerificationCounts(minCompleteness = 80) {
+    const [
+      totalStudentUsers,
+      totalStudentProfiles,
+      incompleteProfiles,
+      pendingVerificationStudents,
+      pendingVerificationAccounts
+    ] = await Promise.all([
+      User.countDocuments({ role: ROLES.STUDENT }),
+      StudentProfile.countDocuments(),
+      StudentProfile.countDocuments({ profileCompleteness: { $lt: minCompleteness } }),
+      User.countDocuments({ role: ROLES.STUDENT, isVerified: false }),
+      User.countDocuments({ isVerified: false })
+    ]);
+
+    const studentsWithoutProfile = Math.max(totalStudentUsers - totalStudentProfiles, 0);
+
+    return {
+      profileCompletenessThreshold: minCompleteness,
+      studentsWithIncompleteProfiles: incompleteProfiles,
+      studentsWithoutProfile,
+      studentsNeedingProfileAttention: incompleteProfiles + studentsWithoutProfile,
+      accountsPendingVerification: pendingVerificationAccounts,
+      studentAccountsPendingVerification: pendingVerificationStudents,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async getPackageComparison() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const previousYear = currentYear - 1;
+
+    const startOfPreviousYear = new Date(previousYear, 0, 1);
+    const startOfNextYear = new Date(currentYear + 1, 0, 1);
+
+    const packageData = await Application.aggregate([
+      {
+        $match: {
+          status: { $in: [APP_STATUS.SELECTED, APP_STATUS.HIRED] },
+          updatedAt: { $gte: startOfPreviousYear, $lt: startOfNextYear }
+        }
+      },
+      {
+        $lookup: {
+          from: 'jobs',
+          localField: 'jobId',
+          foreignField: '_id',
+          as: 'jobInfo'
+        }
+      },
+      {
+        $unwind: {
+          path: '$jobInfo',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          resolvedPackage: {
+            $ifNull: ['$offerDetails.packageLPA', '$jobInfo.packageLPA']
+          }
+        }
+      },
+      { $match: { resolvedPackage: { $gt: 0 } } },
+      {
+        $group: {
+          _id: { year: { $year: '$updatedAt' } },
+          averagePackageLPA: { $avg: '$resolvedPackage' },
+          highestPackageLPA: { $max: '$resolvedPackage' },
+          offersCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: '$_id.year',
+          averagePackageLPA: { $round: ['$averagePackageLPA', 2] },
+          highestPackageLPA: { $round: ['$highestPackageLPA', 2] },
+          offersCount: 1
+        }
+      }
+    ]);
+
+    const byYear = new Map(packageData.map((item) => [item.year, item]));
+    const current = byYear.get(currentYear) || {
+      year: currentYear,
+      averagePackageLPA: 0,
+      highestPackageLPA: 0,
+      offersCount: 0
+    };
+    const previous = byYear.get(previousYear) || {
+      year: previousYear,
+      averagePackageLPA: 0,
+      highestPackageLPA: 0,
+      offersCount: 0
+    };
+
+    const avgChange = this._calculateChange(current.averagePackageLPA, previous.averagePackageLPA);
+    const highestChange = this._calculateChange(current.highestPackageLPA, previous.highestPackageLPA);
+
+    return {
+      comparisonLabel: 'vs last year',
+      previousYear,
+      currentYear,
+      averagePackage: {
+        currentYear: current.averagePackageLPA,
+        previousYear: previous.averagePackageLPA,
+        change: avgChange,
+        trend: this._getTrend(avgChange),
+        offersCountCurrentYear: current.offersCount,
+        offersCountPreviousYear: previous.offersCount,
+        label: 'vs last year'
+      },
+      highestPackage: {
+        currentYear: current.highestPackageLPA,
+        previousYear: previous.highestPackageLPA,
+        change: highestChange,
+        trend: this._getTrend(highestChange),
+        label: 'vs last year'
+      },
+      generatedAt: now.toISOString()
+    };
+  }
+
+  // ----------------------------------------------------------------
+  // SECTION 5: Utilities
   // ----------------------------------------------------------------
 
   _calculateChange(current, previous) {

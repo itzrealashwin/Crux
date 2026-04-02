@@ -565,7 +565,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">© 2025 Project Crux. All rights reserved.</p>
+            <p className="text-xs text-muted-foreground">© 2025 Crux. All rights reserved.</p>
             <p className="font-mono-alt text-xs text-muted-foreground">v1.0.0</p>
           </div>
         </div>

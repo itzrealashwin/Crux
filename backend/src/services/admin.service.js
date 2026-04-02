@@ -11,8 +11,9 @@ class AdminService {
 async createAdmin(adminData, actor) {
   const { userId, email, password, role = "ADMIN", ...profile } = adminData;
 
-  if (role === "SUPER_ADMIN" && actor.actorRole !== "SUPER_ADMIN") {
-    throw { statusCode: 403, message: "Only SUPER_ADMIN can create SUPER_ADMIN" };
+  // Only SUPER_ADMIN can create new admins (of any role)
+  if (actor.actorRole !== "SUPER_ADMIN") {
+    throw { statusCode: 403, message: "Only SUPER_ADMIN can create an admin profile" };
   }
 
   let user = null;
@@ -112,19 +113,27 @@ async createAdmin(adminData, actor) {
   }
 
   /**
-   * DELETE PROFILE
-   * Consistent with industry standards: find and delete.
+   * DELETE ADMIN
+   * Consistent with industry standards: find and delete both profile and user account.
    */
-  async deleteProfile(userId) {
-    // Check existence first to provide specific error
-    const profile = await AdminProfile.findOneAndDelete({ userId });
+  async deleteAdmin(adminId, actor) {
+    if (actor.actorRole !== "SUPER_ADMIN") {
+      throw { statusCode: 403, message: "Only SUPER_ADMIN can delete an admin profile" };
+    }
 
+    // `adminId` is the _id from the AdminProfile collection
+    const profile = await AdminProfile.findById(adminId);
     if (!profile) {
       throw { statusCode: 404, message: "Admin profile not found" };
     }
 
-    // Optional: Also delete the user login account?
-    // await User.findByIdAndDelete(userId);
+    if (profile.userId.toString() === actor.actorId.toString()) {
+      throw { statusCode: 400, message: "You cannot delete your own admin account" };
+    }
+
+    // Delete both the user login account and the profile
+    await User.findByIdAndDelete(profile.userId);
+    await AdminProfile.findByIdAndDelete(adminId);
 
     return { message: "Admin profile deleted successfully" };
   }

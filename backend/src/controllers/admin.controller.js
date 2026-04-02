@@ -37,10 +37,14 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
-export const deleteProfile = async (req, res, next) => {
+export const deleteAdmin = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    await adminService.deleteProfile(userId);
+    const adminId = req.params.id; // ID of the admin to delete
+    const actor = {
+      actorId: req.user._id,
+      actorRole: req.user.role,
+    };
+    await adminService.deleteAdmin(adminId, actor);
     sendSuccess(res, null, "Admin profile deleted successfully");
   } catch (error) {
     next(error);

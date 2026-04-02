@@ -19,7 +19,7 @@ export const useAuth = () => {
         mutationFn: authService.login,
         onSuccess: () => {
             toast.success("Login Successful", {
-                description: "Welcome back to Project Crux!",
+                description: "Welcome back to Crux!",
             });
 
             queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });

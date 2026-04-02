@@ -12,6 +12,8 @@ import {
   ChevronDown,
   Sun,
   Moon,
+  UserCog,
+  BarChart2
 } from "lucide-react";
 
 // Hooks
@@ -37,6 +39,8 @@ const NAV_ITEMS = [
   { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Manage Jobs", path: "/admin/jobs", icon: Briefcase },
   { label: "Manage Students", path: "/admin/students", icon: Users },
+  { label: "Manage Admins", path: "/admin/admins", icon: UserCog },
+  { label: "Analytics", path: "/admin/analytics", icon: BarChart2 },
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 

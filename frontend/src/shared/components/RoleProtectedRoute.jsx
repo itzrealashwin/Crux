@@ -12,7 +12,7 @@ const RoleProtectedRoute = ({ allowedRoles = [] }) => {
     <div className="h-screen w-full flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-2">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Verifying access...</p>
+        <p className="text-sm text-muted-foreground">Loading</p>
       </div>
     </div>
   );

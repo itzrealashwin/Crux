@@ -8,7 +8,7 @@ export const adminService = {
 
 	updateProfile: async (payload) => unwrapData(await api.put("/admin/profile", payload)),
 
-	deleteProfile: async () => unwrapData(await api.delete("/admin/profile")),
+	deleteProfile: async (id) => unwrapData(await api.delete(`/admin/profile/${id}`)),
 
 	getAllAdmins: async () => unwrapData(await api.get("/admin/all")),
 

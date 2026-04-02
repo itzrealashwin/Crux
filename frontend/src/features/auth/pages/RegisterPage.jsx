@@ -114,7 +114,7 @@ export default function RegisterPage() {
               Create an account
             </CardTitle>
             <CardDescription className="text-base">
-              Enter your email to get started with Project Crux
+              Enter your email to get started with Crux
             </CardDescription>
           </CardHeader>
 

@@ -1,7 +1,7 @@
 {
   "name": "project-crux-backend",
   "version": "1.0.0",
-  "description": "Project Crux - Placement Management System Backend",
+  "description": "Crux - Placement Management System Backend",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

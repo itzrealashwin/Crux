@@ -30,6 +30,8 @@ const ManageStudents    = lazy(() => import("@/features/admin/pages/ManageStuden
 const ViewApplications  = lazy(() => import("@/features/admin/pages/ViewApplications"));
 const ViewStudentProfile = lazy(() => import("@/features/admin/pages/ViewStudentProfile"));
 const AdminJobDetails   = lazy(() => import("@/features/admin/pages/AdminJobDetail"));
+const AnalyticsPage     = lazy(() => import("@/features/admin/pages/AnalyticsPage"));
+const ManageAdmin       = lazy(() => import("@/features/admin/pages/ManageAdmin"));
 
 function App() {
   return (
@@ -66,6 +68,8 @@ function App() {
               <Route path="students" element={<ManageStudents />} />
               <Route path="students/:studentId" element={<ViewStudentProfile />} />
               <Route path="jobs/:jobId/applications" element={<ViewApplications />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="admins" element={<ManageAdmin />} />
             </Route>
           </Route>
 

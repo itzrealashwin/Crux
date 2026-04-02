@@ -1,4 +1,4 @@
-# Project Crux - Placement Management System
+# Crux - Placement Management System
 
 A comprehensive placement management system for colleges, simplifying the process from job posting to final selection.
 
