@@ -26,16 +26,56 @@ const createJobSchema = z.object({
   workMode: z.enum(["On-site", "Remote", "Hybrid"]).optional(),
   location: z.string().optional(),
   packageLPA: z.number(),
+  vacancies: z.number().optional(),
+  salaryBreakup: z.object({
+    fixed: z.number().optional(),
+    variable: z.number().optional(),
+  }).optional(),
+  stipend: z.object({
+    amount: z.number().optional(),
+    frequency: z.enum(["Monthly", "Lumpsum"]).optional(),
+  }).optional(),
+  bond: z.object({
+    hasBond: z.boolean().optional(),
+    durationYears: z.number().optional(),
+    penaltyAmount: z.number().optional(),
+  }).optional(),
   deadline: z.string().or(z.date()),
+  attachmentUrl: z.string().optional(),
   eligibility: z.object({
     minCgpa: z.number().optional(),
     maxBacklogs: z.number().optional(),
     targetBatch: z.array(z.number()).min(1),
     allowedDepartments: z.array(z.string()).optional(),
+    genderAllowed: z.enum(["Any", "Male", "Female", "Other"]).optional(),
     minXthMarks: z.number().optional(),
     minXIIthMarks: z.number().optional(),
     minProfileCompleteness: z.number().optional(),
   }),
+  skillsRequired: z.array(z.string()).optional(),
+  selectionProcess: z.array(z.object({
+    step: z.number().optional(),
+    name: z.string(),
+  })).optional(),
+  driveTimeline: z.array(z.object({
+    key: z.enum([
+      "APPLICATION_OPEN",
+      "APPLICATION_CLOSE",
+      "SHORTLIST_RELEASED",
+      "APTITUDE_TEST",
+      "CODING_ROUND",
+      "GROUP_DISCUSSION",
+      "TECHNICAL_INTERVIEW",
+      "HR_INTERVIEW",
+      "OFFER_ROLLOUT",
+      "DRIVE_CLOSED",
+    ]),
+    label: z.string().optional(),
+    date: z.string().optional(),
+    isDone: z.boolean().optional(),
+    note: z.string().optional(),
+  })).optional(),
+  status: z.enum(["DRAFT", "OPEN", "CLOSED", "HOLD"]).optional(),
 });
 
 const updateJobSchema = z.object({

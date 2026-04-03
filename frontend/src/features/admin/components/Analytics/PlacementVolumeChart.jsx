@@ -5,7 +5,7 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  linearGradient 
+   
 } from "recharts";
 import { 
   Card, 

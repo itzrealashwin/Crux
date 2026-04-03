@@ -26,6 +26,7 @@ const NotificationsPage = lazy(() => import("@/features/notifications/pages/Noti
 // Admin — only downloaded when role=ADMIN
 const AdminDashboard    = lazy(() => import("@/features/admin/pages/AdminDashboard"));
 const ManageJobs        = lazy(() => import("@/features/admin/pages/ManageJobs"));
+const JobFormPage       = lazy(() => import("@/features/admin/pages/JobFormPage"));
 const ManageStudents    = lazy(() => import("@/features/admin/pages/ManageStudents"));
 const ViewApplications  = lazy(() => import("@/features/admin/pages/ViewApplications"));
 const ViewStudentProfile = lazy(() => import("@/features/admin/pages/ViewStudentProfile"));
@@ -64,6 +65,8 @@ function App() {
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="jobs" element={<ManageJobs />} />
+              <Route path="jobs/new" element={<JobFormPage />} />
+              <Route path="jobs/:jobCode/edit" element={<JobFormPage />} />
               <Route path="jobs/:id" element={<AdminJobDetails />} />
               <Route path="students" element={<ManageStudents />} />
               <Route path="students/:studentId" element={<ViewStudentProfile />} />
