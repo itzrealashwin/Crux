@@ -1,6 +1,8 @@
 import { verifyToken, signAccessToken } from "../utils/jwt.util.js"; // Ensure generateToken is exported
 import { sendError } from "../utils/response.util.js";
 import User from "../models/users.model.js";
+import AuthToken from "../models/authToken.model.js";
+import { hashValue } from "../utils/hash.util.js";
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -50,6 +52,25 @@ export const authenticate = async (req, res, next) => {
     }
 
     const refreshUserId = decodedRefresh.id || decodedRefresh.userId;
+    const incomingRefreshTokenHash = hashValue(refreshToken);
+
+    const tokenRecord = await AuthToken.findOne({
+      userId: refreshUserId,
+      refreshTokenHash: incomingRefreshTokenHash,
+      isRevoked: false,
+      refreshTokenExpiresAt: { $gt: new Date() },
+    })
+      .select("_id userId")
+      .lean();
+
+    if (!tokenRecord) {
+      return sendError(
+        res,
+        "Unauthorized: Session invalid or revoked, please login again",
+        401
+      );
+    }
+
     const user = await User.findById(refreshUserId)
       .select("_id role isActive")
       .lean();
