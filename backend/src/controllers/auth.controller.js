@@ -4,14 +4,14 @@ import { sendSuccess } from '../utils/response.util.js';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production', // true in production (HTTPS)
-  sameSite: 'strict',
+  sameSite: 'none',
   path: '/',
 };
 
 const USER_ID_COOKIE_OPTIONS = {
   httpOnly: false,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  sameSite: 'none',
   path: '/',
 };
 
