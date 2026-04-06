@@ -20,10 +20,9 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  "http://localhost:5173",
-].filter(Boolean);
+const allowedOrigins = [process.env.CLIENT_URL, "http://localhost:5173"].filter(
+  Boolean,
+);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -73,7 +72,7 @@ app.use(
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  })
+  }),
 );
 
 if (process.env.NODE_ENV !== "production") {
@@ -102,7 +101,7 @@ app.get("/health", (req, res) => {
   res.status(200).json({
     status: "OK",
     uptime: process.uptime(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -118,10 +117,10 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    console.log(process.env.MONGO_URI)
-    
+    console.log(process.env.MONGO_URI);
+
     await mongoose.connect(process.env.MONGO_URI, {
-      autoIndex: true
+      autoIndex: true,
     });
 
     console.log("✅ MongoDB connected");
