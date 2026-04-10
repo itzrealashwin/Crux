@@ -110,28 +110,22 @@ app.get("/health", (req, res) => {
 ================================ */
 app.use(errorHandler);
 
-/* ===============================
-   Database + Server Bootstrap
-================================ */
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-  try {
-    console.log(process.env.MONGO_URI);
+// 1. Initiate MongoDB connection at the top level
+mongoose
+  .connect(process.env.MONGO_URI, {
+    autoIndex: true,
+  })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((error) => console.error("❌ MongoDB connection failed:", error.message));
 
-    await mongoose.connect(process.env.MONGO_URI, {
-      autoIndex: true,
-    });
+// 2. Only start the server manually if NOT in Vercel (production)
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running locally on port ${PORT}`);
+  });
+}
 
-    console.log("✅ MongoDB connected");
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("❌ Server startup failed:", error.message);
-    process.exit(1);
-  }
-};
-
-startServer();
+// 3. Export the app for Vercel Serverless Functions
+export default app;
