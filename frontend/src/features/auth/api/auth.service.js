@@ -7,6 +7,10 @@ export const authService = {
         return unwrapData(await api.post('/auth/login', credentials));
     },
 
+    guestLogin: async (data) => {
+        return unwrapData(await api.post('/auth/guest-login', data));
+    },
+
     register: async (data) => {
         return unwrapData(await api.post('/auth/register', data));
     },

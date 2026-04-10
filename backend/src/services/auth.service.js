@@ -74,6 +74,76 @@ class AuthService {
     return { accessToken, refreshToken, userId: user._id.toString() };
   }
 
+  async guestLogin(ipAddress, deviceInfo, role = "STUDENT") {
+    const email = role === "STUDENT" ? "guest_student@mespune.in" : "guest_tpo@mespune.in";
+    const password = crypto.randomBytes(16).toString("hex"); // Just dummy, won't need it to login
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        email,
+        passwordHash: password,
+        role,
+        isVerified: true,
+        isGuest: true,
+      });
+    }
+
+    // Always ensure the dummy profile exists if role is STUDENT
+    if (role === "STUDENT") {
+      try {
+        const StudentProfile = (await import("../models/studentProfile.model.js")).default;
+        const existingProfile = await StudentProfile.findOne({ userId: user._id });
+        
+        if (!existingProfile) {
+          await StudentProfile.create({
+            userId: user._id,
+            firstName: "Guest",
+            lastName: "Student",
+            phone: "0000000000",
+            department: "COMPUTER",
+            graduationYear: 2026,
+            xthMarks: 0,
+            xIIthMarks: 0,
+            cgpa: 0,
+            backlogs: 0,
+            profileCompleteness: 100
+          });
+        }
+      } catch (err) {
+        console.error("Failed to create guest student profile:", err);
+      }
+    }
+
+    const accessToken = signAccessToken({ id: user._id, role: user.role });
+    const refreshToken = signRefreshToken({
+      id: user._id,
+      role: user.role
+    });
+
+    const accessTokenHash = hashValue(accessToken);
+    const refreshTokenHash = hashValue(refreshToken);
+
+    const accessExpiry = new Date(Date.now() + 15 * 60 * 1000); 
+    const refreshExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await AuthToken.create({
+      userId: user._id,
+      accessTokenHash,
+      refreshTokenHash,
+      accessTokenExpiresAt: accessExpiry,
+      refreshTokenExpiresAt: refreshExpiry,
+      ipAddress,
+      deviceInfo,
+    });
+
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    return { accessToken, refreshToken, userId: user._id.toString(), email: user.email };
+  }
+
   async refresh(refreshToken, ipAddress, deviceInfo) {
     const decoded = verifyToken(refreshToken, true);
     if (!decoded) {

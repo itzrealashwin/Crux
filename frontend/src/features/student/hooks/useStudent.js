@@ -6,7 +6,7 @@ import { toast } from "sonner";
  * 1. useStudentProfile
  * For the Logged-in User (Me) to view/create/update their own profile.
  */
-export const useStudentProfile = () => {
+export const useStudentProfile = (options = {}) => {
   const queryClient = useQueryClient();
 
   const profileQuery = useQuery({
@@ -14,6 +14,7 @@ export const useStudentProfile = () => {
     queryFn: studentService.getProfile,
     retry: false,
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 
   const createMutation = useMutation({

@@ -16,7 +16,10 @@ api.interceptors.response.use(
 
     // Handle auth expiry
     if (error.response?.status === 401) {
-      window.location.href = "/login";
+      const publicPaths = ['/login', '/register', '/', '/verify-otp', '/forgot-password', '/guest'];
+      if (!publicPaths.includes(window.location.pathname)) {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(new Error(message));

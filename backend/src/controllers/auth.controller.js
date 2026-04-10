@@ -1,17 +1,18 @@
 import authService from '../services/auth.service.js';
 import { sendSuccess } from '../utils/response.util.js';
+const isProduction = process.env.NODE_ENV === 'production';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // true in production (HTTPS)
-  sameSite: 'none',
+  secure: isProduction, // true in prod (HTTPS), false in dev (HTTP)
+  sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-domain prod, 'lax' for localhost dev
   path: '/',
 };
 
 const USER_ID_COOKIE_OPTIONS = {
-  httpOnly: false,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none',
+  httpOnly: false, // Accessible by frontend JS
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
   path: '/',
 };
 
@@ -55,6 +56,38 @@ export const login = async (req, res, next) => {
     });
 
     sendSuccess(res, { user: { email } }, 'Login successful');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const loginAsGuest = async (req, res, next) => {
+  try {
+    const ipAddress = req.ip;
+    const deviceInfo = req.headers['user-agent'];
+    const role = req.body.role || 'STUDENT';
+
+    const { accessToken, refreshToken, userId, email } = await authService.guestLogin(ipAddress, deviceInfo, role);
+  
+    // Set Access Token Cookie
+    res.cookie('accessToken', accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: ACCESS_TOKEN_EXPIRY,
+    });
+
+    // Set Refresh Token Cookie
+    res.cookie('refreshToken', refreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: REFRESH_TOKEN_EXPIRY,
+    });
+
+    // Set User ID Cookie for frontend
+    res.cookie('userId', String(userId), {
+      ...USER_ID_COOKIE_OPTIONS,
+      maxAge: REFRESH_TOKEN_EXPIRY,
+    });
+
+    sendSuccess(res, { user: { email, isGuest: true, role } }, 'Guest login successful');
   } catch (error) {
     next(error);
   }

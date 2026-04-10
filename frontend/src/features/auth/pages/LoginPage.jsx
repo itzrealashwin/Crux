@@ -33,9 +33,12 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { user, login, loginError, isLoggingIn, isAuthenticated } = useAuth();
+  const [loadingGuestRole, setLoadingGuestRole] = useState(null);
+  const { user, login, loginError, isLoggingIn, isAuthenticated, guestLogin, isGuestLoggingIn, guestLoginError } = useAuth();
   const { profile: studentProfile, isLoading: isLoadingProfile } =
-    useStudentProfile();
+    useStudentProfile({
+      enabled: !!(isAuthenticated && user && user.role === "STUDENT" && !user.isGuest)
+    });
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -48,11 +51,11 @@ export default function LoginPage() {
         // Check if student has completed profile
         if (isLoadingProfile) return; // Wait for profile to load
 
-        if (!studentProfile) {
+        if (!studentProfile && !user.isGuest) {
           // No profile data, send to onboarding
           navigate("/student/onboarding");
         } else {
-          // Profile exists, go to dashboard
+          // Profile exists (or guest), go to dashboard
           navigate("/student/dashboard");
         }
       } else if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
@@ -68,6 +71,17 @@ export default function LoginPage() {
       await login({ email, password });
     } catch (err) {
       console.error("Login failed:", err);
+    }
+  };
+
+  const handleGuestLogin = async (role) => {
+    setLoadingGuestRole(role);
+    try {
+      await guestLogin({ role });
+    } catch (err) {
+      console.error("Guest Login failed:", err);
+    } finally {
+      setLoadingGuestRole(null);
     }
   };
 
@@ -206,6 +220,50 @@ export default function LoginPage() {
                   </>
                 ) : (
                   "Sign in"
+                )}
+              </Button>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or try our tools
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleGuestLogin("STUDENT")}
+                className="w-full h-11 mb-2 transition-all duration-200 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                disabled={isGuestLoggingIn}
+              >
+                {isGuestLoggingIn && loadingGuestRole === "STUDENT" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Continuing...
+                  </>
+                ) : (
+                  "Continue as Guest Student"
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleGuestLogin("ADMIN")}
+                className="w-full h-11 transition-all duration-200 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                disabled={isGuestLoggingIn}
+              >
+                {isGuestLoggingIn && loadingGuestRole === "ADMIN" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Continuing...
+                  </>
+                ) : (
+                  "Continue as Guest TPO"
                 )}
               </Button>
             </form>

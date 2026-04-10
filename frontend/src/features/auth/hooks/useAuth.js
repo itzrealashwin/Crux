@@ -31,6 +31,21 @@ export const useAuth = () => {
         },
     });
 
+    const guestLoginMutation = useMutation({
+        mutationFn: authService.guestLogin,
+        onSuccess: (data) => {
+            toast.success("Guest Login Successful", {
+                description: `Welcome! You are logged in as a Guest ${data.role}.`,
+            });
+            queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+        },
+        onError: (error) => {
+            toast.error("Guest Login Failed", {
+                description: error.message || "Could not log in as a guest.",
+            });
+        },
+    });
+
     const registerMutation = useMutation({
         mutationFn: authService.register,
         onSuccess: () => {
@@ -80,6 +95,10 @@ export const useAuth = () => {
         login: loginMutation.mutateAsync,
         isLoggingIn: loginMutation.isPending,
         loginError: loginMutation.error,
+
+        guestLogin: guestLoginMutation.mutateAsync,
+        isGuestLoggingIn: guestLoginMutation.isPending,
+        guestLoginError: guestLoginMutation.error,
 
         register: registerMutation.mutateAsync,
         isRegistering: registerMutation.isPending,
