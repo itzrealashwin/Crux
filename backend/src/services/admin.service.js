@@ -71,7 +71,7 @@ async createAdmin(adminData, actor) {
       throw { statusCode: 404, message: "Admin profile not found" };
     }
 
-    if (!userAccount || userAccount.role !== "ADMIN") {
+    if (!userAccount || (userAccount.role !== "ADMIN" || userAccount.role !== "SUPER_ADMIN")) {
       throw { statusCode: 403, message: "Access denied: User is not an admin" };
     }
 

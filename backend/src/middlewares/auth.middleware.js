@@ -8,7 +8,7 @@ export const authenticate = async (req, res, next) => {
   try {
     const accessToken = req.cookies.accessToken;
     const refreshToken = req.cookies.refreshToken;
-
+    
     // --- CASE 1: Valid Access Token ---
     if (accessToken) {
       const decoded = verifyToken(accessToken);
