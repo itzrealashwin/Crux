@@ -24,8 +24,12 @@ const allowedOrigins = [process.env.CLIENT_URL, "http://localhost:5173"].filter(
   Boolean,
 );
 
+// ✅ Fixes the rate limiter proxy warning
+app.set("trust proxy", 1);
+
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 2 * 60 * 1000,
   max: 5,
   message: {
     status: 429,
@@ -62,13 +66,10 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header (Postman/mobile clients).
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
@@ -86,6 +87,32 @@ app.use("/api/otp/send", otpLimiter);
 app.use("/api/otp/verify", otpLimiter);
 
 /* ===============================
+   Serverless MongoDB Connection
+================================ */
+// Track the connection state to prevent multiple connections in Vercel
+let isConnected = false; 
+
+const connectDB = async () => {
+  if (isConnected) return; // Use existing connection if warm
+
+  try {
+    const db = await mongoose.connect(process.env.MONGO_URI, {
+      autoIndex: true,
+    });
+    isConnected = db.connections[0].readyState === 1;
+    console.log("✅ MongoDB connected successfully");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+  }
+};
+
+// Ensure DB is connected BEFORE any routes execute
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
+/* ===============================
    Routes
 ================================ */
 app.use("/api/auth", authRoutes);
@@ -93,7 +120,7 @@ app.use("/api/otp", otpRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/jobs", jobsRoutes);
-app.use("/api/applications", applicationRoute); // Applications routes
+app.use("/api/applications", applicationRoute);
 app.use("/api/skills", skillRoutes);
 app.use("/api/notifications", notificationRoutes);
 
@@ -112,20 +139,14 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// 1. Initiate MongoDB connection at the top level
-mongoose
-  .connect(process.env.MONGO_URI, {
-    autoIndex: true,
-  })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((error) => console.error("❌ MongoDB connection failed:", error.message));
-
-// 2. Only start the server manually if NOT in Vercel (production)
 if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running locally on port ${PORT}`);
+  // Connect immediately in local development before starting server
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running locally on port ${PORT}`);
+    });
   });
 }
 
-// 3. Export the app for Vercel Serverless Functions
+// Export for Vercel Serverless Functions
 export default app;

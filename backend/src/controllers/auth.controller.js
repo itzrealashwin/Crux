@@ -32,6 +32,7 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    
     const ipAddress = req.ip;
     const deviceInfo = req.headers['user-agent'];
 

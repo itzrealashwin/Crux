@@ -36,6 +36,8 @@ class AuthService {
       throw { statusCode: 400, message: "Email must be a mespune.in address" };
     }
     const user = await User.findOne({ email }).select("+passwordHash");
+    console.log(user);
+    
     if (!user) {
       throw { statusCode: 401, message: "Invalid credentials" };
     }
