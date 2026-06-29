@@ -146,7 +146,10 @@ JWT_REFRESH_EXPIRES_IN=7d
 BCRYPT_SALT_ROUNDS=10
 
 # CORS
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:3000,https://admin.example.com,https://app.example.com
+
+# You can add as many allowed origins as you need, separated by commas.
+# Local development on http://localhost:5173 is still allowed automatically.
 
 # Logging
 LOG_LEVEL=dev
